@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/ctreminiom/go-atlassian/jira/sm/internal"
-	model "github.com/ctreminiom/go-atlassian/pkg/infra/models"
-	"github.com/ctreminiom/go-atlassian/service/common"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ctreminiom/go-atlassian/jira/sm/internal"
+	model "github.com/ctreminiom/go-atlassian/pkg/infra/models"
+	"github.com/ctreminiom/go-atlassian/service/common"
 )
 
 const defaultServiceManagementVersion = "latest"
@@ -33,7 +34,6 @@ func New(httpClient common.HttpClient, site string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	client := &Client{
 		HTTP: httpClient,
 		Site: u,

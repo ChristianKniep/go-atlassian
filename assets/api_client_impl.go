@@ -4,23 +4,34 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/ctreminiom/go-atlassian/assets/internal"
-	model "github.com/ctreminiom/go-atlassian/pkg/infra/models"
-	"github.com/ctreminiom/go-atlassian/service/common"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
+
+	"github.com/ctreminiom/go-atlassian/assets/internal"
+	model "github.com/ctreminiom/go-atlassian/pkg/infra/models"
+	"github.com/ctreminiom/go-atlassian/service/common"
 )
 
 const DefaultAssetsSite = "https://api.atlassian.com/"
 
-func New(httpClient common.HttpClient) (*Client, error) {
+func New(httpClient common.HttpClient, site string) (*Client, error) {
 
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
-	u, err := url.Parse(DefaultAssetsSite)
+	if site == "" {
+		return nil, model.ErrNoSiteError
+	}
+
+	if !strings.HasSuffix(site, "/") {
+		site += "/"
+	}
+
+	u, err := url.Parse(site)
+
 	if err != nil {
 		return nil, err
 	}
