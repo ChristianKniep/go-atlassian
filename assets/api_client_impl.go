@@ -1,4 +1,4 @@
-package sm
+package assets
 
 import (
 	"bytes"
@@ -9,21 +9,20 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ctreminiom/go-atlassian/jira/sm/internal"
+	"github.com/ctreminiom/go-atlassian/assets/internal"
 	model "github.com/ctreminiom/go-atlassian/pkg/infra/models"
 	"github.com/ctreminiom/go-atlassian/service/common"
-	"github.com/sirupsen/logrus"
 )
 
-const defaultServiceManagementVersion = "latest"
+const DefaultAssetsSite = "https://api.atlassian.com/"
 
 func New(httpClient common.HttpClient, site string) (*Client, error) {
+
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
 	if site == "" {
-		logrus.Errorf("site is empty")
 		return nil, model.ErrNoSiteError
 	}
 
@@ -32,61 +31,39 @@ func New(httpClient common.HttpClient, site string) (*Client, error) {
 	}
 
 	u, err := url.Parse(site)
+
 	if err != nil {
 		return nil, err
 	}
+
 	client := &Client{
 		HTTP: httpClient,
 		Site: u,
 	}
 
 	client.Auth = internal.NewAuthenticationService(client)
-	client.Customer = internal.NewCustomerService(client, defaultServiceManagementVersion)
-	client.Info = internal.NewInfoService(client, defaultServiceManagementVersion)
-	client.Knowledgebase = internal.NewKnowledgebaseService(client, defaultServiceManagementVersion)
-	client.Organization = internal.NewOrganizationService(client, defaultServiceManagementVersion)
-	client.WorkSpace = internal.NewWorkSpaceService(client, defaultServiceManagementVersion)
 
-	requestSubServices := &internal.ServiceRequestSubServices{
-		Approval:    internal.NewApprovalService(client, defaultServiceManagementVersion),
-		Attachment:  internal.NewAttachmentService(client, defaultServiceManagementVersion),
-		Comment:     internal.NewCommentService(client, defaultServiceManagementVersion),
-		Participant: internal.NewParticipantService(client, defaultServiceManagementVersion),
-		SLA:         internal.NewServiceLevelAgreementService(client, defaultServiceManagementVersion),
-		Feedback:    internal.NewFeedbackService(client, defaultServiceManagementVersion),
-		Type:        internal.NewTypeService(client, defaultServiceManagementVersion),
-	}
-
-	requestService, err := internal.NewRequestService(client, defaultServiceManagementVersion, requestSubServices)
-	if err != nil {
-		return nil, err
-	}
-	client.Request = requestService
-
-	serviceDeskService, err := internal.NewServiceDeskService(
-		client,
-		defaultServiceManagementVersion,
-		internal.NewQueueService(client, defaultServiceManagementVersion))
-
-	if err != nil {
-		return nil, err
-	}
-	client.ServiceDesk = serviceDeskService
+	// Assets services
+	client.AQL = internal.NewAQLService(client)
+	client.Icon = internal.NewIconService(client)
+	client.Object = internal.NewObjectService(client)
+	client.ObjectSchema = internal.NewObjectSchemaService(client)
+	client.ObjectType = internal.NewObjectTypeService(client)
+	client.ObjectTypeAttribute = internal.NewObjectTypeAttributeService(client)
 
 	return client, nil
 }
 
 type Client struct {
-	HTTP          common.HttpClient
-	Site          *url.URL
-	Auth          common.Authentication
-	Customer      *internal.CustomerService
-	Info          *internal.InfoService
-	Knowledgebase *internal.KnowledgebaseService
-	Organization  *internal.OrganizationService
-	Request       *internal.RequestService
-	ServiceDesk   *internal.ServiceDeskService
-	WorkSpace     *internal.WorkSpaceService
+	HTTP                common.HttpClient
+	Site                *url.URL
+	Auth                common.Authentication
+	AQL                 *internal.AQLService
+	Icon                *internal.IconService
+	Object              *internal.ObjectService
+	ObjectSchema        *internal.ObjectSchemaService
+	ObjectType          *internal.ObjectTypeService
+	ObjectTypeAttribute *internal.ObjectTypeAttributeService
 }
 
 func (c *Client) NewRequest(ctx context.Context, method, urlStr, type_ string, body interface{}) (*http.Request, error) {
@@ -117,15 +94,10 @@ func (c *Client) NewRequest(ctx context.Context, method, urlStr, type_ string, b
 
 	if body != nil && type_ != "" {
 		req.Header.Set("Content-Type", type_)
-		req.Header.Set("X-Atlassian-Token", "no-check")
 	}
 
 	if c.Auth.HasBasicAuth() {
 		req.SetBasicAuth(c.Auth.GetBasicAuth())
-	}
-
-	if c.Auth.HasSetExperimentalFlag() {
-		req.Header.Set("X-ExperimentalApi", "opt-in")
 	}
 
 	if c.Auth.HasUserAgent() {
