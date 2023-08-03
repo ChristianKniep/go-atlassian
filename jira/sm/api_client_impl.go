@@ -12,17 +12,18 @@ import (
 	"github.com/ctreminiom/go-atlassian/jira/sm/internal"
 	model "github.com/ctreminiom/go-atlassian/pkg/infra/models"
 	"github.com/ctreminiom/go-atlassian/service/common"
+	"github.com/sirupsen/logrus"
 )
 
 const defaultServiceManagementVersion = "latest"
 
 func New(httpClient common.HttpClient, site string) (*Client, error) {
-
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
 	if site == "" {
+		logrus.Errorf("site is empty")
 		return nil, model.ErrNoSiteError
 	}
 
