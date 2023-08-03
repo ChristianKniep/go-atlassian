@@ -1,4 +1,4 @@
-module github.com/ChristianKniep/go-atlassian
+module github.com/ctreminiom/go-atlassian
 
 go 1.14
 
